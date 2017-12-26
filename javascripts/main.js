@@ -1,53 +1,65 @@
-// Add your function at the end. First function is of highest priority.
-var contributorsList = [];
-var thank = function() {
-  var j = 0;
-  setInterval(function() {
-    $('#name').fadeOut(function() {
-      if (j === contributorsList.length) {
-        j = 0;
-      }
-      $(this).html("Thanks for your contributions, " + contributorsList[j++]);
-      $(this).fadeIn();
-    });
-  }, 6000);
-};
+var cList = [];
+var cFinal = [];
 
-//Line
-
-var getContributors = function(page) {
-  // Fetching contributors list
-  $.ajax({
-    url: "https://api.github.com/repos/jboss-outreach/gci/contributors?page="+page
+function fetchContributions() {
+	$.ajax({
+      url: "https://api.github.com/orgs/jboss-outreach/repos"
+  }).done(function(repos) {
+	  repos.forEach(function(repo) {
+$.ajax({
+      url: "https://api.github.com/repos/jboss-outreach/" + repo.name + "/contributors",
   }).done(function(data) {
-    if (data.length === 0) {
-      // Fetching is done, now display name in Thanks section
-      thank();
-      return;
-    }
-    data.forEach(function(contributors) {
-      contributorsList.push(contributors.login);
-      // Ignore LineLengthBear
-      var html = "<div class='col-xs-12 col-sm-6 col-md-4 col-lg-3'><div class='card'>";
-      html += "<div class='avatar'>";
-      html += "<img src=" + contributors.avatar_url + "><div class='contribs'><p>";
-      html += contributors.contributions;
-      if (contributors.contributions === 1) {
-        html += " contribution";
-      } else {
-        html += " contributions";
-      }
-      html += "</p><a href=" + contributors.html_url + " class='contributor-gh'><i class='fa fa-github fa-2x' aria-hidden='true'></i></a></div>";
-      html += "<span>";
-      html += contributors.login + "</span></div></div></div>";
-      $("#contributors-list").append(html);
-    });
-    getContributors(page+1);
+	 data.sort(function(a, b) {
+    return (b.contributions) - (a.contributions);
+});
+data.forEach(function(contributors) {
+	if(cList[contributors.login] == undefined) {
+	cList[contributors.login] = contributors.contributions;
+	}
+	else {
+		cList[contributors.login] += contributors.contributions;
+	}
+});
   });
-};
+});
+}).then(function() {
+	console.log(cList['garg-anuj']);
+for (var user in cList) {
+	var basepurl = "https://github.com/" + user;
+	var baseaurl = "https://avatars.githubusercontent.com/" + user;
+	cFinal.push({ name:user, contributions:cList[user], profile:basepurl, avatar:baseaurl});
+}
+
+cFinal.sort(function(a, b) {
+    return b.contributions-a.contributions
+});
+cFinal.slice(0, 50);
+cFinal.forEach(function(contributors) {
+	var html = "<div class='col-xs-12 col-sm-6 col-md-4 col-lg-3'><div class='card'><div class='avatar'>";
+      html += "<img src=" + contributors.avatar + "><div class='contribs'><p>";
+      html += contributor.contributions + " contribution";
+      if (contributor.contributions > 1) {
+        html += "s";
+      }
+      html += "</p><a href=" + contributor.profile +
+        " class='contributor-gh'><i class='fa fa-github fa-2x' aria-hidden='true'></i></a></div>";
+      html += "<span>" + contributor.name + "</span></div></div></div>";
+      $("#contributors-list").append(html);
+});
+});
+}
 
 // Calling recursion function
-$(getContributors(1));
+async function displayContributions() {
+	try {
+	await fetchContributions();
+	}
+	catch (err) {
+		console.error(err);
+	}
+}
+
+displayContributions();
 
 $(function() {
   $('a[href*="#"]:not([href="#"])').click(function() {
